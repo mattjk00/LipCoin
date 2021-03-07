@@ -1,0 +1,16 @@
+{
+  "name": "lipcoin",
+  "version": "1.0.0",
+  "description": "Lip-toCurrency",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "tsc;node jsbuild/index.js",
+    "restart": "node jsbuild/index.js"
+  },
+  "author": "Matthew Kleitz",
+  "license": "ISC",
+  "dependencies": {
+    "typescript": "^4.2.3"
+  }
+}
