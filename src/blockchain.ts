@@ -1,6 +1,6 @@
 import {Arr, Rusty} from "./util"
-import {createHash} from "crypto"
-import { Transaction } from "./transaction";
+import {createHash, generateKeyPairSync, createSign, createVerify, KeyPairKeyObjectResult, KeyObject} from "crypto"
+import { Transaction, verifyTransaction } from "./transaction";
 
 /**
  * Represents a block on the chain.
@@ -93,6 +93,7 @@ export function calcHash(block:Block): Array<number> {
 /**
  * Verifies if a new block is valid.
  * Checks relationship between given block and previous and verifies the block's hash.
+ * Also checks if transactions on the block are okay.
  * @param block Block to verify
  * @param prevBlock Supposed previous block to given
  */
@@ -105,9 +106,36 @@ export function verifyBlock(block:Block, prevBlock:Block): boolean {
     // confirm the block's hash
     let calcNew = calcHash(block);
     let hashOkay = Arr.equal<number>(block.hash, calcNew);
-    return linkOkay && hashOkay;
+
+    let transactionsOkay = true;
+    for (let t of block.transactions) {
+        let verified = verifyTransaction(t);
+        if (!verified) {
+            transactionsOkay = false;
+            break;
+        }
+    }
+    return linkOkay && hashOkay && transactionsOkay;
 }
 
+/**
+ * Replaces blockchain if given one is found to have more work.
+ * @param bc Blockchain that may get replaced
+ * @param chain The new chain to check against.
+ */
+export function replaceChain(bc:Blockchain, chain:Array<Block>): Blockchain {
+    if (bc.chain.length < chain.length) {
+        bc.chain = chain;
+    }
+    return bc;
+}
 
-
-
+/**
+ * Generates an rsa keypair.
+ */
+export function generateKeys():KeyPairKeyObjectResult {
+    const keypair = generateKeyPairSync('rsa', {
+        modulusLength:2048
+    });
+    return keypair;
+}
