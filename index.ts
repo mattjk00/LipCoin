@@ -1,5 +1,7 @@
-import {Block,newBlock} from "./src/blockchain"
+import {Block,newBlock,verifyBlock} from "./src/blockchain"
 import {Arr} from "./src/util"
 
 let b = newBlock(0, Arr.empty<number>(32, 0));
-console.log(b);
+let b2 = newBlock(1, b.hash);
+console.log(b, b2);
+console.log(`Verified: ${verifyBlock(b2, b)}`);

@@ -27,3 +27,13 @@ function calcHash(block:Block): Array<number> {
     a.push(...hash);
     return a;
 }
+
+export function verifyBlock(block:Block, prevBlock:Block): boolean {
+    if (block.index == 0) {
+        return true;
+    }
+    let linkOkay:boolean = block.previousHash == prevBlock.hash && block.index == prevBlock.index + 1;
+    let calcNew = calcHash(block);
+    let hashOkay = Arr.equal<number>(block.hash, calcNew);
+    return linkOkay && hashOkay;
+}
