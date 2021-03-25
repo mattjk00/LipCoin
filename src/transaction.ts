@@ -1,6 +1,7 @@
 import {Token} from "./nft"
 import {Arr} from "./util"
-import { KeyPairKeyObjectResult, createSign, KeyObject, createVerify } from "crypto";
+import { KeyPairKeyObjectResult, createSign, KeyObject, createVerify, KeyExportOptions } from "crypto";
+import { REWARD } from "./mine";
 type TValue = number|Token;
 
 /**
@@ -31,6 +32,10 @@ export function newTransaction(send:Array<number>, recipient:Array<number>, valu
     } as Transaction;
 }
 
+export function isNum(val:TValue):boolean {
+    return (val as Token).price == null;
+}
+
 /**
  * Constructs a signed transaction with given information.
  * @param send Sender of the transaction
@@ -44,12 +49,24 @@ export function newSignedTransaction(send:Array<number>, recipient:Array<number>
     return t;
 }
 
+export function rewardTransaction(genHash:Array<number>, kp:KeyPairKeyObjectResult):Transaction {
+    let t = newTransaction(genHash, publicKeyAsArray(kp.publicKey), REWARD);
+    t = signTransaction(t, kp);
+    return t;
+}
+
 /**
  * Creates a string representation of the transaction.
  * @param t
  */
 export function transactionToString(t:Transaction):string {
     return `${t.sender}${t.recipient}${t.value}${t.timestamp}`;
+}
+
+export function publicKeyAsArray(k:KeyObject):number[] {
+    let arr:number[] = [];
+    arr.push(...k.export({format:'pem', type:'pkcs1'} as KeyExportOptions<'pem'>) as Buffer);
+    return arr;
 }
 
 /**
@@ -66,6 +83,7 @@ export function signTransaction(t:Transaction, kp:KeyPairKeyObjectResult):Transa
     t.signature = [];
     t.signature.push(...signature);
     t.signerkey = kp.publicKey;
+    
     return t;
 }
 

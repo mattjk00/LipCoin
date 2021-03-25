@@ -1,6 +1,8 @@
 import {Arr, Rusty} from "./util"
-import {createHash, generateKeyPairSync, createSign, createVerify, KeyPairKeyObjectResult, KeyObject} from "crypto"
-import { Transaction, verifyTransaction } from "./transaction";
+import {createHash, generateKeyPairSync, createSign, createVerify, KeyPairKeyObjectResult, KeyObject, randomInt} from "crypto"
+import { Transaction, verifyTransaction, isNum, publicKeyAsArray } from "./transaction";
+import {Token} from "./nft"
+import { NPROOF, hasProofOfWork } from "./mine";
 
 /**
  * Represents a block on the chain.
@@ -11,6 +13,7 @@ export interface Block {
     hash:Array<number>,                 // The block hash
     previousHash:Array<number>,         // The hash of the previous block
     transactions:Array<Transaction>     // The list of transactions on the block
+    nonce: number
 }
 
 /**
@@ -31,7 +34,8 @@ export function newBlock(index: number, previousHash:Array<number>): Block {
         timestamp:Date.now(),
         hash:Arr.empty<number>(32, 0),
         transactions:new Array(),
-        previousHash:previousHash
+        previousHash:previousHash,
+        nonce:randomInt(2^48)
     } as Block;
 
     block.hash = calcHash(block);
@@ -58,7 +62,7 @@ export function newBlockchain(): Blockchain {
  * ```
  */
 export function pushBlock(bc:Blockchain, block:Block):Blockchain {
-    let verified = verifyBlock(block, bc.chain[bc.chain.length-1]);
+    let verified = verifyBlock(bc, block, bc.chain[bc.chain.length-1]);
     if (verified) {
         bc.chain.push(block);
     }
@@ -84,7 +88,7 @@ export function lastHash(bc:Blockchain):Array<number> {
  */
 export function calcHash(block:Block): Array<number> {
     let a: Array<number> = [];
-    let stringRep = `${block.index}${block.timestamp}${block.previousHash}`;
+    let stringRep = `${block.index}${block.timestamp}${block.previousHash}${block.nonce}`;
     let hash = createHash('sha256').update(stringRep).digest();
     a.push(...hash);
     return a;
@@ -97,7 +101,7 @@ export function calcHash(block:Block): Array<number> {
  * @param block Block to verify
  * @param prevBlock Supposed previous block to given
  */
-export function verifyBlock(block:Block, prevBlock:Block): boolean {
+export function verifyBlock(bc:Blockchain, block:Block, prevBlock:Block): boolean {
     if (block.index == 0) {
         return true;
     }
@@ -107,6 +111,8 @@ export function verifyBlock(block:Block, prevBlock:Block): boolean {
     let calcNew = calcHash(block);
     let hashOkay = Arr.equal<number>(block.hash, calcNew);
 
+    hashOkay = hashOkay && hasProofOfWork(block);
+
     let transactionsOkay = true;
     for (let t of block.transactions) {
         let verified = verifyTransaction(t);
@@ -115,7 +121,57 @@ export function verifyBlock(block:Block, prevBlock:Block): boolean {
             break;
         }
     }
+    let spenders = blockSpenders(block);
+    for (let [key, value] of spenders) {
+        let sum = value.reduce((a,b)=>a+b, 0);
+        let spenderBalance = calcBalance(bc, key);
+        let newBlockBalance = calcBlockBalance(block, key);
+        console.log(newBlockBalance);
+        if (sum > spenderBalance + newBlockBalance) {
+            transactionsOkay = false;
+            break;
+        }
+    }
+
     return linkOkay && hashOkay && transactionsOkay;
+}
+
+/**
+ * Attempts to calculate the balance of a given public key
+ * @param bc Blockchain
+ * @param pkey Public Key to check 'balance' of
+ */
+export function calcBalance(bc:Blockchain, pkey:number[]):number {
+    let bal = 0;
+    // gen hash infinite money.
+    if (Arr.equal<number>(pkey, bc.chain[0].hash)) {
+        return Number.MAX_SAFE_INTEGER;
+    }
+    for (let block of bc.chain) {
+        bal += calcBlockBalance(block, pkey);
+    }
+    return bal;
+}
+
+function calcBlockBalance(block:Block, pkey:number[]):number {
+    let bal = 0;
+    for (let t of block.transactions) {
+        if (Arr.equal<number>(t.recipient, pkey)) {
+            if (isNum(t.value)) {
+                bal += t.value as number;
+            } else {
+                bal -= (t.value as Token).price;
+            }
+        }
+        if (Arr.equal<number>(t.sender, pkey)) {
+            if (isNum(t.value)) {
+                bal -= t.value as number;
+            } else {
+                bal += (t.value as Token).price;
+            }
+        }
+    }
+    return bal;
 }
 
 /**
@@ -128,6 +184,33 @@ export function replaceChain(bc:Blockchain, chain:Array<Block>): Blockchain {
         bc.chain = chain;
     }
     return bc;
+}
+
+/**
+ * Returns a map of the spenders on the block. Transaction Sender -> Total Sending
+ * Used to make sure a sender cannot send more than they are allowed through
+ * multiple transactions in the same block.
+ * @param b Block to analyze
+ */
+export function blockSpenders(b:Block):Map<number[], number[]> {
+    let m:Map<number[], number[]> = new Map();
+    for (let t of b.transactions) {
+        if (m.has(t.sender) == false) {
+            m.set(t.sender, new Array());
+        }
+        let ia = m.get(t.sender);
+        if (ia != undefined) {
+            let marr = ia as number[];
+            if ((t.value as Token).price != null) {
+                marr.push((t.value as Token).price);
+                m.set(t.sender, marr);
+            } else {
+                marr.push(t.value as number);
+                m.set(t.sender, marr);
+            }
+        }
+    }
+    return m;
 }
 
 /**
