@@ -8,18 +8,19 @@ let bc = newBlockchain();
 let b = newBlock(bc.chain.length, lastHash(bc));
 
 let keys = generateKeys();
-let t = newTransaction(publicKeyAsArray(keys.publicKey), Arr.empty<number>(32, 2), 0);
+let t = newTransaction(publicKeyAsArray(keys.publicKey), Arr.empty<number>(32, 2), 5);
 t = signTransaction(t, keys);
-//b.transactions.push(t);
+b.transactions.push(t);
 b = mineRoutine(bc, b, keys);
 bc = pushBlock(bc,b);
+//console.log(bc.chain[1].transactions);
 
 let b2 = newBlock(bc.chain.length, b.hash);
 b2 = mineRoutine(bc, b2, keys);
 bc = pushBlock(bc,b2);
 
-console.log(bc.chain);
-console.log(`Verified: ${verifyBlock(bc, b2, b)}`);
+//console.log(bc.chain);
+//onsole.log(`Verified: ${verifyBlock(bc, b2, b)}`);
 
 console.log(
     //Array.from( blockSpenders(bc.chain[1]).keys() )

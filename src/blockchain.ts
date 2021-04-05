@@ -122,15 +122,20 @@ export function verifyBlock(bc:Blockchain, block:Block, prevBlock:Block): boolea
         }
     }
     let spenders = blockSpenders(block);
+    
     for (let [key, value] of spenders) {
-        let sum = value.reduce((a,b)=>a+b, 0);
+        
+        let spending = value.reduce((a,b)=>a+b, 0);
         let spenderBalance = calcBalance(bc, key);
-        let newBlockBalance = calcBlockBalance(block, key);
-        console.log(newBlockBalance);
-        if (sum > spenderBalance + newBlockBalance) {
+        let income = calcBlockBalance(block, key, true);
+        //console.log(`Sum: ${sum}`);
+        //console.log(`Spender: ${spenderBalance}`);
+        //console.log(`NewBal: ${newBlockBalance}`);
+        if (spenderBalance + income < spending) {
             transactionsOkay = false;
             break;
         }
+        
     }
 
     return linkOkay && hashOkay && transactionsOkay;
@@ -148,29 +153,36 @@ export function calcBalance(bc:Blockchain, pkey:number[]):number {
         return Number.MAX_SAFE_INTEGER;
     }
     for (let block of bc.chain) {
-        bal += calcBlockBalance(block, pkey);
+        bal += calcBlockBalance(block, pkey, false);
     }
+    //console.log(bal);
     return bal;
 }
 
-function calcBlockBalance(block:Block, pkey:number[]):number {
+function calcBlockBalance(block:Block, pkey:number[], incomeOnly:boolean):number {
     let bal = 0;
     for (let t of block.transactions) {
         if (Arr.equal<number>(t.recipient, pkey)) {
+            //console.log(`Rec:${t.value}`);
             if (isNum(t.value)) {
                 bal += t.value as number;
+                
             } else {
                 bal -= (t.value as Token).price;
             }
+            
         }
-        if (Arr.equal<number>(t.sender, pkey)) {
+        if (!incomeOnly && Arr.equal<number>(t.sender, pkey)) {
+            //console.log(`Send:${t.value}`);
             if (isNum(t.value)) {
                 bal -= t.value as number;
+                
             } else {
                 bal += (t.value as Token).price;
             }
         }
     }
+    
     return bal;
 }
 
