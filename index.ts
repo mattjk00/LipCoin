@@ -1,7 +1,8 @@
-import {Block,newBlock,verifyBlock, Blockchain, newBlockchain,pushBlock,lastHash, generateKeys, blockSpenders, calcBalance} from "./src/blockchain"
+import {Block,newBlock,verifyBlock, Blockchain, newBlockchain,pushBlock,lastHash, generateKeys, blockSpenders, calcBalance, exportKey} from "./src/blockchain"
 import {Arr} from "./src/util"
 import {Transaction, signTransaction, newTransaction, verifyTransaction, publicKeyAsArray} from "./src/transaction"
 import { mineRoutine } from "./src/mine";
+import { KeyObject, createPublicKey, createPrivateKey, KeyExportOptions } from "crypto";
 
 let bc = newBlockchain();
 
@@ -14,6 +15,7 @@ b.transactions.push(t);
 b = mineRoutine(bc, b, keys);
 bc = pushBlock(bc,b);
 //console.log(bc.chain[1].transactions);
+
 
 let b2 = newBlock(bc.chain.length, b.hash);
 b2 = mineRoutine(bc, b2, keys);

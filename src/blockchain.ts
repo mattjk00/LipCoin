@@ -4,6 +4,7 @@ import { Transaction, verifyTransaction, isNum, publicKeyAsArray } from "./trans
 import {Token} from "./nft"
 import { NPROOF, hasProofOfWork } from "./mine";
 
+
 /**
  * Represents a block on the chain.
  */
@@ -233,4 +234,8 @@ export function generateKeys():KeyPairKeyObjectResult {
         modulusLength:2048
     });
     return keypair;
+}
+
+export async function exportKey(key:KeyObject) {
+    
 }
