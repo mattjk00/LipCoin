@@ -65,7 +65,7 @@ export function transactionToString(t:Transaction):string {
 
 export function publicKeyAsArray(k:KeyObject):number[] {
     let arr:number[] = [];
-    arr.push(...k.export({format:'pem', type:'pkcs1'} as KeyExportOptions<'pem'>) as Buffer);
+    arr.push(...k.export({format:'der', type:'pkcs1'} as KeyExportOptions<'der'>) as Buffer);
     return arr;
 }
 
