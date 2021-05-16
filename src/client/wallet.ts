@@ -27,3 +27,11 @@ export function newWallet():Wallet {
     } as Wallet;
     return wallet;
 }
+
+export function walletKeyPair(wallet:Wallet):KeyPairKeyObjectResult {
+    let kpkor = {
+        publicKey:wallet.publicKey,
+        privateKey:wallet.privateKey
+    } as KeyPairKeyObjectResult;
+    return kpkor;
+}
