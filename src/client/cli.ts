@@ -3,6 +3,7 @@ import { Wallet, loadWallet, newWallet, walletKeyPair } from "./wallet";
 import { publicKeyAsArray } from "../transaction";
 import { mineRoutine } from "../mine";
 const readline = require('readline');
+const prompt = require('prompt-sync')({sigint:true});
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -29,16 +30,16 @@ function main() {
 }
 
 function promptStartup(state:CState):CState {
-    state = prompt(state, "\n[1] New Wallet\n[2] Existing Wallet\n",
+    state = promptQuestion(state, "[1] New Wallet\n[2] Existing Wallet",
         (s) => {
             console.clear();
-            let wname = promptString("Wallet Name: ");
+            let wname = prompt("Wallet Name: ");
             s.wallet.name = wname;
             return s;
         },
         (s) => {
             console.clear();
-            let wname = promptString("Load Wallet Name: ");
+            let wname = prompt("Load Wallet Name: ");
             // LOAD WALLET
             return s;
         }
@@ -48,13 +49,13 @@ function promptStartup(state:CState):CState {
 }
 
 function promptConnection(state:CState):CState {
-    let endpoint = promptString("Connect to Network Address: ");
+    let endpoint = prompt("Connect to Network Address: ");
     // connect!
     return state;
 }
 
 function promptAction(state:CState):CState {
-    state = prompt(state, "\n[1] Personal Mode\n[2] Miner Mode\n",
+    state = promptQuestion(state, "\n[1] Personal Mode\n[2] Miner Mode\n",
         (s) => {
             state = promptPersonalMode(state);
             return s;
@@ -80,26 +81,29 @@ function startMine(state:CState):CState {
     return state;
 }
 
-function prompt(state:CState, msg:string, ...handlers:((s:CState) => CState)[]):CState {
-    rl.question(msg, (ans:number) => {
+function promptQuestion(state:CState, msg:string, ...handlers:((s:CState) => CState)[]):CState {
+    //rl.question(msg, (ans:number) => {
+    const msgs = msg.split('\n');
+    msgs.forEach(m => {
+        console.log(m);
+    })
+    const ans = prompt("") as number;    
+    if (ans <= 0 || ans > handlers.length) {
+        console.log("Invalid Response.");    
+    } else {
         
-        if (ans <= 0 || ans > handlers.length) {
-            console.log("Invalid Response.");
-            return state;
-        } else {
-            
-            handlers[ans-1](state);
-        }
-        rl.close();
-    });
+        handlers[ans-1](state);
+    }
+        //rl.close();
+    //});
     return state;
 }
 
-function promptString(msg:string):string {
+/*function promptString(msg:string):string {
     let answer:string = "";
     rl.question(msg, (ans:string) => {
         answer = ans;
         rl.close();
     });
     return answer;
-}
+}*/
