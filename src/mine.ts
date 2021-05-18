@@ -2,7 +2,7 @@ import { Block, calcHash, Blockchain } from "./blockchain";
 import { randomInt, KeyPairKeyObjectResult } from "crypto";
 import { rewardTransaction } from "./transaction";
 
-export const NPROOF = 0;
+export const NPROOF = 1;
 export const REWARD = 5;
 
 /**
@@ -10,7 +10,7 @@ export const REWARD = 5;
  * @param b Block to mine a hash for
  */
 export function tryMineHash(b:Block): Block {
-    b.nonce = randomInt(2^48);
+    b.nonce++;// NAIVE MINER = randomInt(2^10);
     b.hash = calcHash(b);
     return b;
 }
@@ -37,6 +37,7 @@ export function mineRoutine(bc:Blockchain, b:Block, kp:KeyPairKeyObjectResult): 
     b.transactions.push(rewardTransaction(bc.chain[0].hash, kp));
     do {
         b = tryMineHash(b);
+        console.log(b.hash[0]);
     } while (hasProofOfWork(b) == false);
     return b;
 }
